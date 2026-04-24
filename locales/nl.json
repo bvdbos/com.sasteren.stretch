@@ -1,0 +1,11 @@
+{
+  "settings": {
+    "ip_address": "IP-adres van de Stretch",
+    "stretch_id": "Stretch ID (8 letters)",
+    "intro": "Voer de gegevens van je Plugwise Stretch in om verbinding te maken."
+  },
+  "pair": {
+    "list_devices": "Zoeken naar Circles...",
+    "select_devices": "Selecteer de Circles die je wilt toevoegen"
+  }
+}

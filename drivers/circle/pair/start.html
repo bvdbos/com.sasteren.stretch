@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; line-height: 1.5; padding: 10px; color: #333; }
+        .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #f9f9f9; }
+        .title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; display: block; }
+        .button-instruction { 
+            margin-top: 20px; 
+            padding: 10px; 
+            background-color: #007aff; 
+            color: white; 
+            text-align: center; 
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="title">Voorbereiding</span>
+        <p>Zorg dat je het <b>IP-adres</b> en de <b>Stretch ID</b> van je Plugwise Stretch hebt ingevoerd bij de <b>App-instellingen</b>.</p>
+        <p>Staat alles goed? Klik dan hieronder om de Circles te zoeken.</p>
+    </div>
+
+    <div class="button-instruction" onclick="Homey.nextView()">
+        Circles zoeken
+    </div>
+
+    <script type="text/javascript">
+        // We laten de SDK check weg. Als Homey de pagina laadt, 
+        // is de Homey.nextView() functie meestal gewoon beschikbaar.
+    </script>
+</body>
+</html>

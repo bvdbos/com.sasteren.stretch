@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+  <style>
+    body { font-family: sans-serif; }
+    .input-group { margin-bottom: 10px; }
+    label { display: block; font-weight: bold; }
+    input { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { padding: 10px; background-color: #007aff; color: white; border: none; border-radius: 4px; width: 100%; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <div class="input-group">
+    <label for="ip_address">IP-Adres van de Stretch:</label>
+    <input type="text" id="ip_address" placeholder="10.0.4.187" />
+  </div>
+
+  <div class="input-group">
+    <label for="stretch_id">Stretch ID:</label>
+    <input type="text" id="stretch_id" placeholder="rlsawxbc" />
+  </div>
+
+  <button id="save-button">Opslaan</button>
+
+  <script type="text/javascript">
+    function onHomeyReady(Homey) {
+      const ipInput = document.getElementById('ip_address');
+      const idInput = document.getElementById('stretch_id');
+      const saveBtn = document.getElementById('save-button');
+
+      // 1. Laad de waarden die al eerder opgeslagen zijn
+      Homey.get('ip_address', (err, value) => {
+        if (value) ipInput.value = value;
+      });
+      Homey.get('stretch_id', (err, value) => {
+        if (value) idInput.value = value;
+      });
+
+      // 2. Luister naar de opslaan-knop
+      saveBtn.addEventListener('click', () => {
+        Homey.set('ip_address', ipInput.value);
+        Homey.set('stretch_id', idInput.value);
+        Homey.alert('Instellingen succesvol opgeslagen!');
+      });
+
+      // Vertel Homey dat de pagina klaar is om getoond te worden
+      Homey.ready();
+    }
+  </script>
+</body>
+</html>

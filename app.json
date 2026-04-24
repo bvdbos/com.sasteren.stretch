@@ -1,0 +1,49 @@
+{
+  "id": "com.sasteren.stretch",
+  "version": "1.0.0",
+  "compatibility": ">=5.0.0",
+  "sdk": 3,
+  "name": { "en": "Plugwise Stretch", "nl": "Plugwise Stretch" },
+  "author": { "name": "B. van den Bosch" },
+  "category": ["appliances"],
+  "settings": [
+    {
+      "id": "ip_address",
+      "type": "text",
+      "label": { "en": "IP Address", "nl": "IP Adres" },
+      "title": { "en": "IP Address", "nl": "IP Adres" },
+      "value": "10.0.4.187"
+    },
+    {
+      "id": "stretch_id",
+      "type": "text",
+      "label": { "en": "Stretch ID", "nl": "Stretch ID" },
+      "title": { "en": "Stretch ID", "nl": "Stretch ID" },
+      "value": ""
+    }
+  ],
+"drivers": [
+    {
+      "id": "circle",
+      "name": { "en": "Circle", "nl": "Circle" },
+      "class": "socket",
+      "capabilities": ["onoff", "measure_power"],
+"pair": [
+  {
+    "id": "start"
+  },
+  {
+    "id": "list_devices",
+    "template": "list_devices",
+    "navigation": {
+      "next": "add_devices"
+    }
+  },
+  {
+    "id": "add_devices",
+    "template": "add_devices"
+  }
+]
+    }
+  ]
+}
