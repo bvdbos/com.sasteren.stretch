@@ -9,21 +9,41 @@ class CircleDriver extends Homey.Driver {
     this.log('Circle Driver has been initialized');
   }
 
-  // Deze methode vervangt de hele session.setHandler rompslomp
+  // NIEUW: Deze handler zorgt ervoor dat de selectie uit de lijst goed wordt verwerkt
+async onPair(session) {
+    this.log('[Pairing] Pairing sessie gestart');
+
+    // Deze handler stuurt de lijst naar de telefoon
+    session.setHandler('list_devices', async () => {
+      this.log('[Pairing] Lijst opvragen voor de wizard...');
+      
+      // Roep hier je functie aan die de XML ophaalt en parst
+      const devices = await this.onPairListDevices();
+      
+      this.log(`[Pairing] We sturen ${devices.length} apparaten naar de wizard.`);
+      
+      // Nu sturen we de ECHTE lijst met apparaten terug naar de telefoon
+      return devices;
+    });
+
+    // Deze handler ontvangt de vinkjes van de gebruiker (voor meerdere devices)
+    session.setHandler('add_devices', async (data) => {
+      this.log('[Pairing] Gebruiker heeft deze apparaten aangevinkt:', data);
+      return data;
+    });
+  }
+
   async onPairListDevices() {
     this.log('[Pairing] onPairListDevices aangeroepen...');
 
     const ip = this.homey.settings.get('ip_address');
     const stretchId = this.homey.settings.get('stretch_id');
-	
-	// 1. Eerst controleren of we de data wel hebben
-  if (!ip || !stretchId) {
-    this.error('[Pairing] Fout: IP of Stretch ID ontbreekt in instellingen.');
     
-    // Deze Error wordt door de Homey App opgevangen en als rode balk getoond
-    throw new Error('Configureer eerst het IP-adres en de Stretch ID in de app-instellingen.');
-  }
-	
+    if (!ip || !stretchId) {
+      this.error('[Pairing] Fout: IP of Stretch ID ontbreekt.');
+      throw new Error('Configureer eerst het IP-adres en de Stretch ID in de app-instellingen.');
+    }
+    
     const auth = Buffer.from(`stretch:${stretchId}`).toString('base64');
 
     return new Promise((resolve, reject) => {
@@ -45,16 +65,18 @@ class CircleDriver extends Homey.Driver {
 
           applianceBlocks.forEach(block => {
             const nameMatch = block.match(/<name>(.*?)<\/name>/);
-            const idMatch = block.match(/id=["']([a-f0-9]+)["']/i);
+            const idMatch = block.match(/id=["'](.*?)["']/i); // Verbeterde regex
 
             if (nameMatch && idMatch) {
               const name = nameMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim();
               const id = idMatch[1].trim();
 
-              devices.push({
-                name: name,
-                data: { id: id }
-              });
+devices.push({
+  name: name, // Haal + " (Test)" hier weg
+  data: { 
+    id: `${id}` // We gebruiken 'pws_' als prefix om ID-conflicten te voorkomen
+  }
+});
             }
           });
 

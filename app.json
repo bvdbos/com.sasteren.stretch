@@ -19,7 +19,11 @@
       "type": "text",
       "label": { "en": "Stretch ID", "nl": "Stretch ID" },
       "title": { "en": "Stretch ID", "nl": "Stretch ID" },
-      "value": ""
+      "value": "",
+	  "attr": {
+    "autocapitalize": "none",
+    "autocorrect": "off"
+  }
     }
   ],
 "drivers": [
