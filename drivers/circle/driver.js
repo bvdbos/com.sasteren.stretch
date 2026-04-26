@@ -9,24 +9,43 @@ class CircleDriver extends Homey.Driver {
     this.log('Circle Driver has been initialized');
   }
 
-  // NIEUW: Deze handler zorgt ervoor dat de selectie uit de lijst goed wordt verwerkt
-async onPair(session) {
+  /**
+   * NIEUW: Deze functie ontvangt de XML van app.js en verdeelt het
+   * Dit is de kern van de centrale polling.
+   */
+updateDevicesData(xmlData) {
+  const devices = this.getDevices();
+  const applianceBlocks = xmlData.split('<appliance ');
+  
+  // Log hoeveel blokken we hebben gevonden
+  this.log(`[Driver] XML gesplitst in ${applianceBlocks.length} blokken.`);
+
+  devices.forEach(device => {
+    const id = device.getData().id;
+    // Zoek het blok waar het ID in voorkomt
+    const myBlock = applianceBlocks.find(block => block.includes(id));
+    
+    if (myBlock) {
+      this.log(`[Driver] Match gevonden voor ${device.getName()} (ID: ${id})`);
+      device.onDataUpdate(myBlock);
+    } else {
+      this.log(`[Driver] GEEN match voor ${device.getName()} (ID: ${id})`);
+    }
+  });
+}
+
+  // --- PAIRING LOGICA (Jouw bestaande code) ---
+  
+  async onPair(session) {
     this.log('[Pairing] Pairing sessie gestart');
 
-    // Deze handler stuurt de lijst naar de telefoon
     session.setHandler('list_devices', async () => {
       this.log('[Pairing] Lijst opvragen voor de wizard...');
-      
-      // Roep hier je functie aan die de XML ophaalt en parst
       const devices = await this.onPairListDevices();
-      
       this.log(`[Pairing] We sturen ${devices.length} apparaten naar de wizard.`);
-      
-      // Nu sturen we de ECHTE lijst met apparaten terug naar de telefoon
       return devices;
     });
 
-    // Deze handler ontvangt de vinkjes van de gebruiker (voor meerdere devices)
     session.setHandler('add_devices', async (data) => {
       this.log('[Pairing] Gebruiker heeft deze apparaten aangevinkt:', data);
       return data;
@@ -65,18 +84,16 @@ async onPair(session) {
 
           applianceBlocks.forEach(block => {
             const nameMatch = block.match(/<name>(.*?)<\/name>/);
-            const idMatch = block.match(/id=["'](.*?)["']/i); // Verbeterde regex
+            const idMatch = block.match(/id=["'](.*?)["']/i);
 
             if (nameMatch && idMatch) {
               const name = nameMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim();
               const id = idMatch[1].trim();
 
-devices.push({
-  name: name, // Haal + " (Test)" hier weg
-  data: { 
-    id: `${id}` // We gebruiken 'pws_' als prefix om ID-conflicten te voorkomen
-  }
-});
+              devices.push({
+                name: name,
+                data: { id: `${id}` }
+              });
             }
           });
 
