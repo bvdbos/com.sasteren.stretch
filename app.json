@@ -46,6 +46,16 @@
     "label": { "en": "Homey Monitoring Started", "nl": "Meting gestart in Homey" },
     "value": "Onbekend",
     "readonly": true
+  },
+  {
+    "id": "device_lock",
+    "type": "checkbox",
+    "label": { "en": "Lock Relay", "nl": "Relais blokkeren (Lock)" },
+    "hint": { 
+      "en": "When enabled, the device cannot be turned off via Homey.", 
+      "nl": "Indien ingeschakeld kan het apparaat niet worden uitgezet via Homey." 
+    },
+    "value": false
   }
 ],
 "pair": [

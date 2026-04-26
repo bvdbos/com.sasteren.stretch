@@ -52,16 +52,40 @@ class CircleDevice extends Homey.Device {
     });
   }
 
+// 1. Als de naam in Homey verandert
+  async onRenamed(newName) {
+    this.log(`Naam in Homey gewijzigd naar ${newName}. Synchroniseren met Stretch...`);
+    try {
+      // We sturen de nieuwe naam, met de huidige lock-status
+      await this.driver.updateAppliance(this, this.getSetting('device_lock'));
+    } catch (err) {
+      this.error('Naam sync naar Stretch mislukt:', err);
+    }
+  }
+
+  // 2. Als de instellingen (lock of beschrijving) veranderen
+  async onSettings({ oldSettings, newSettings, changedKeys }) {
+    if (changedKeys.includes('device_lock') || changedKeys.includes('device_description')) {
+      try {
+        // We sturen de huidige naam, met de nieuwe lock/beschrijving
+        await this.driver.updateAppliance(this, newSettings.device_lock);
+      } catch (err) {
+        this.error('Settings sync naar Stretch mislukt:', err);
+        throw new Error('Kon de wijziging niet doorvoeren naar de Stretch.');
+      }
+    }
+  }
+
   // Deze functie wordt aangeroepen vanuit de Driver
 onDataUpdate(myBlock) {
-  this.log(`--- Update voor: ${this.getName()} ---`);
+  // this.log(`--- Update voor: ${this.getName()} ---`);
 
   // 1. Wattage (consumed W)
   // We zoeken specifiek naar het blok waar 'electricity_consumed' boven de unit 'W' staat
   const powerMatch = myBlock.match(/electricity_consumed<\/type>\s*<unit>W<\/unit>[\s\S]*?<measurement[^>]*?>([\d.]+)</);
   if (powerMatch) {
     const power = parseFloat(powerMatch[1]);
-    this.log(`[Watt] ${power} W`);
+    //this.log(`[Watt] ${power} W`);
     this.setCapabilityValue('measure_power', power).catch(this.error);
   }
 
@@ -74,7 +98,7 @@ onDataUpdate(myBlock) {
     let lastKnownHourWh = this.getStoreValue('last_hour_wh');
 
     if (lastKnownHourWh === null || lastKnownHourWh === undefined) {
-      this.log(`[kWh] Eerste meting: ${currentHourWh / 1000} kWh`);
+      //this.log(`[kWh] Eerste meting: ${currentHourWh / 1000} kWh`);
       this.setCapabilityValue('meter_power', currentHourWh / 1000).catch(this.error);
     } else if (currentHourWh > lastKnownHourWh) {
       const diffKwh = (currentHourWh - lastKnownHourWh) / 1000;
@@ -83,7 +107,7 @@ onDataUpdate(myBlock) {
     }
     
     this.setStoreValue('last_hour_wh', currentHourWh).catch(this.error);
-    this.log(`[kWh] Stand: ${totalMeterKwh.toFixed(4)} kWh`);
+    //this.log(`[kWh] Stand: ${totalMeterKwh.toFixed(4)} kWh`);
   }
 
   // 3. Status (Aan/Uit)
@@ -100,6 +124,21 @@ onDataUpdate(myBlock) {
     const stretchDate = new Date(stretchDateMatch[1]).toLocaleDateString('nl-NL');
     this.setSettings({ install_date_stretch: stretchDate }).catch(this.error);
   }
+  
+  // 5. Lock status synchroniseren met de UI
+    const lockMatch = myBlock.match(/<lock>(true|false)<\/lock>/);
+    if (lockMatch) {
+      const isLockedOnStretch = lockMatch[1] === 'true';
+      const isLockedInHomey = this.getSetting('device_lock');
+
+      // Als de Stretch en Homey het niet eens zijn, volg de Stretch
+      if (isLockedOnStretch !== isLockedInHomey) {
+        this.log(`[Sync] Lock status op Stretch (${isLockedOnStretch}) wijkt af van Homey. Fixen...`);
+        this.setSettings({
+          device_lock: isLockedOnStretch
+        }).catch(this.error);
+      }
+    }
 }
 
 } // <--- Deze sloot waarschijnlijk niet goed af

@@ -20,18 +20,71 @@ updateDevicesData(xmlData) {
   // Log hoeveel blokken we hebben gevonden
   this.log(`[Driver] XML gesplitst in ${applianceBlocks.length} blokken.`);
 
-  devices.forEach(device => {
-    const id = device.getData().id;
-    // Zoek het blok waar het ID in voorkomt
-    const myBlock = applianceBlocks.find(block => block.includes(id));
-    
-    if (myBlock) {
-      this.log(`[Driver] Match gevonden voor ${device.getName()} (ID: ${id})`);
-      device.onDataUpdate(myBlock);
-    } else {
-      this.log(`[Driver] GEEN match voor ${device.getName()} (ID: ${id})`);
-    }
+devices.forEach(device => {
+  const id = device.getData().id;
+  // Zoek het blok waar het ID in voorkomt
+  const myBlock = applianceBlocks.find(block => block.includes(id));
+  
+  if (myBlock) {
+    // Geef het XML-blok door aan het device voor status-updates (verbruik/relais)
+    device.onDataUpdate(myBlock);
+  } else {
+    this.log(`[Driver] GEEN match gevonden in XML voor device: ${device.getName()} (ID: ${id})`);
+  }
+});
+}
+
+
+async updateAppliance(device, isLocked) {
+  // Gebruik de exacte ID's uit je app.json settings
+  const address = this.homey.settings.get('ip_address');
+  const stretchId = this.homey.settings.get('stretch_id');
+  
+  if (!address || !stretchId) {
+    this.error("Configuratie ontbreekt: check IP en Stretch ID in de app instellingen.");
+    throw new Error("Configuratie incompleet");
+  }
+
+  const url = `http://${address}/core/appliances`;
+// Zorg dat deviceId een schone string is zonder extra quotes
+  const deviceId = device.getData().id.replace(/"/g, ''); 
+  const deviceName = device.getName();
+  const deviceType = device.getData().type || 'circle';
+
+const xmlBody = `
+<appliances>
+  <appliance id="${deviceId}">
+    <name><![CDATA[${deviceName}]]></name>
+    <actuators>
+      <relay>
+        <lock>${isLocked}</lock>
+      </relay>
+    </actuators>
+  </appliance>
+</appliances>`.trim();
+
+  // De autorisatie zoals de Stretch die verwacht
+  const authHeader = 'Basic ' + Buffer.from(`stretch:${stretchId}`).toString('base64');
+
+  this.log(`Sync naar Stretch (${address}): Name="${deviceName}", Lock=${isLocked}`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/xml',
+      'Authorization': authHeader
+    },
+    body: xmlBody
   });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    this.error(`Stretch weigert update (Status: ${response.status}):`, errorBody);
+    throw new Error(`Stretch update mislukt`);
+  }
+
+  this.log(`Stretch succesvol bijgewerkt voor ${deviceName}`);
+  return true;
 }
 
   // --- PAIRING LOGICA (Jouw bestaande code) ---
@@ -106,6 +159,48 @@ updateDevicesData(xmlData) {
       });
     });
   }
+  
+  async setLock(device, isLocked) {
+  const url = `http://${this.homey.settings.get('address')}/core/appliances`;
+  const deviceId = device.getData().id;
+  const deviceName = device.getName();
+
+  // De exacte XML structuur zoals de Stretch die accepteert
+  const xmlBody = `
+    <appliances>
+      <appliance id="${deviceId}">
+        <name><![CDATA[${deviceName}]]></name>
+        <description><![CDATA[]]></description>
+        <type><![CDATA[circle]]></type>
+        <actuators>
+          <relay>
+            <lock>${isLocked}</lock>
+          </relay>
+        </actuators>
+      </appliance>
+    </appliances>
+  `.trim();
+
+  this.log(`Versturen hardware lock naar Stretch voor ${deviceName}: ${isLocked}`);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/xml',
+      'Authorization': 'Basic ' + Buffer.from('admin:' + this.homey.settings.get('password')).toString('base64')
+    },
+    body: xmlBody
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    this.error('Stretch POST Error:', errorText);
+    throw new Error(`Stretch lock fout: ${response.status}`);
+  }
+
+  this.log(`Lock succesvol doorgevoerd voor ${deviceName}`);
+  return true;
+}
 }
 
 module.exports = CircleDriver;
